@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <header>
+        {%for i in menu%}
+        <a href={{i["url"]}}>{{i["name"]}}</a>
+        {%endfor%}
+    </header>
+    <h1 style="background-color:green">
+        {%if title%}{{title}}{%else%}Ban{%endif%}</h1>
+    {%block body%}{%endblock%}
+</body>
+</html>
