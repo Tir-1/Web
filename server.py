@@ -163,6 +163,7 @@ def delete(tag):
     return redirect("/blog/-1")
 
 
+
 if __name__ == '__main__':
     db_session.global_init("db/Users.db")
     app.run(port=8080, host='127.0.0.1')
