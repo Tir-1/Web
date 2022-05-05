@@ -1,13 +1,13 @@
 from flask import Flask, render_template, redirect
 from findform import FindForm, FindForm2, CountForm, LoginForm, AddTag
-from create_map import start
-from count_S import coordinates
+from create.create_map import start
+from create.count_S import coordinates
 from data import db_session
 from findform import RegisterForm
 from data.users import User
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from test import load_map
-from main import get_coord
+from create.test import load_map
+from create.main import get_coord
 from data.tags import Tags_of_map
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
@@ -148,10 +148,11 @@ def add():
         tag.coord = get_coord(form.address._value())
         tag.name = form.name._value()
         tag.description = form.text._value()
-        tag.user_id2 = 1
+        tag.user_id = current_user.id
         current_user.tags.append(tag)
         db_sess.merge(current_user)
         db_sess.commit()
+        return redirect("blog/-1")
     return render_template("addtag.html", title="Добавление метки", form=form)
 
 
@@ -162,6 +163,21 @@ def delete(tag):
     db_sess.commit()
     return redirect("/blog/-1")
 
+@app.route("/rewrite/<num>", methods=['GET', 'POST'])
+def rewrite(num):
+    form = AddTag()
+    if form.validate_on_submit():
+        db_sess = db_session.create_session()
+        rewrite_tag = db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id,
+                                                        Tags_of_map.id == flag).first()
+        rewrite_tag.location = form.address._value()
+        rewrite_tag.coord = get_coord(form.address._value())
+        rewrite_tag.name = form.name._value()
+        rewrite_tag.description = form.text._value()
+        rewrite_tag.user_id2 = 1
+        db_sess.commit()
+        return redirect("blog/-1")
+    return render_template("addtag.html", title="Добавление метки", form=form)
 
 
 if __name__ == '__main__':

@@ -3,7 +3,6 @@ from flask_login import current_user
 
 def start(x, check):
     lon, lat, Z = 0, 0, 10
-    old_z = Z
     l = 'sat'
     n = x.split(";")
     geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode={n[0]},1&format=json"
