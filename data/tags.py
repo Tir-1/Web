@@ -14,4 +14,5 @@ class Tags_of_map(SqlAlchemyBase):
     coord = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     description = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), nullable=False)
+    in_directory = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     user = orm.relationship("User", backref='tags')

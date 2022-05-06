@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block body %}
+{%for i in text%}
+    <a href={{i["id"]}}>{{i["name"]}}</a>
+    {%endfor%}
+{% endblock %}
