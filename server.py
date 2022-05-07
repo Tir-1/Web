@@ -121,8 +121,11 @@ def blog(tag):
             location = n.location
             db_sess.commit()
             info = [{"name": "Назад", "id": "", "url": "/blog/-1"},
-                    {"name": "Удалить эту запись", "id": "", "url": f"/delete/{tag}"},
-                    {"name": "Добавить эту метку в альбом", "id": "", "url": f"/add_to_dir/{tag}"}]
+                    {"name": "Удалить эту запись", "id": "", "url": f"/delete/{tag}"}]
+            if n.in_directory == 0:
+                info.append({"name": "Добавить эту метку в альбом", "id": "", "url": f"/add_to_dir/{tag}"})
+            else:
+                info.append({"name": "Перенести запись", "id": "", "url": f"/add_to_dir/{tag}"})
         else:
             for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id, Tags_of_map.in_directory == 0):
                 d = {"name": i.name, "id": i.id, "url": "/blog/" + str(i.id)}
@@ -178,21 +181,36 @@ def create():
 def cr2(num):
     db_sess = db_session.create_session()
     text = [{"name": "Назад", "id": "/blog/-1"}]
-    for i in db_sess.query(Directory).filter(Directory.user_id == current_user.id):
-        text.append({"name": i.name, "id": f"/save/{str(num) + ';' + str(i.id)}"})
-    return render_template("dir.html", title="Ваши директории", text=text)
+    tg = db_sess.query(Tags_of_map).filter(Tags_of_map.id == num).first()
+    if tg.in_directory == 0:
+        title = "Ваши директории"
+        for i in db_sess.query(Directory).filter(Directory.user_id == current_user.id):
+            text.append({"name": i.name, "id": f"/save/{str(num) + ';' + str(i.id)}"})
+    else:
+        title = "Переместить в"
+        for i in db_sess.query(Directory).filter(Directory.user_id == current_user.id, Directory.id != tg.in_directory):
+            text.append({"name": i.name, "id": f"/save/{str(num) + ';' + str(i.id) + ';' + str(tg.in_directory)}"})
+    return render_template("dir.html", title=title, text=text)
 @app.route("/save/<nums>")
 def cr3(nums):
     nums = nums.split(";")
     db_sess = db_session.create_session()
     tg = db_sess.query(Tags_of_map).filter(Tags_of_map.id == nums[0]).first()
-    tg.in_directory = 1
-    tg_id = tg.id
-    db_sess.commit()
     dir = db_sess.query(Directory).filter(Directory.id == nums[1]).first()
+    tg_id = tg.id
+    if len(nums) == 3:
+        old_dir = db_sess.query(Directory).filter(Directory.id == nums[2]).first()
+        new_id = ""
+        tags = old_dir.tags.split(";")
+        for i in tags:
+            if str(i) != str(tg_id) and i != "":
+                new_id += f"{i};"
+        old_dir.tags = new_id
+        db_sess.commit()
+    tg.in_directory = dir.id
     dir.tags = dir.tags + str(tg_id) + ";"
     db_sess.commit()
-    return "Hello"
+    return redirect("/blog/-1")
 if __name__ == '__main__':
     db_session.global_init("db/Users.db")
     app.run(port=8080, host='127.0.0.1')
