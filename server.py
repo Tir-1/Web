@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, redirect
 from werkzeug.utils import secure_filename
 from PIL import Image
-from findform import FindForm, FindForm2, CountForm, LoginForm, AddTag, AddDirect
+from findform import FindForm, CountForm, LoginForm, AddTag, AddDirect
 from create.create_map import start
 from create.count_S import coordinates
 from data import db_session
@@ -24,40 +24,52 @@ default1 = ""
 @app.route('/index')
 def index():
     if current_user.is_authenticated and len(menu) == 1:
-        menu.append({"name": "Поиск места", 'url': "/find"})
-        menu.append({"name": "Вычисление расстояния", 'url': "/S"})
+        menu.append({"name": "Поиск места", 'url': "/find/1"})
+        menu.append({"name": "Вычисление расстояния", 'url': "/S/1"})
         menu.append({"name": "Дневник путешествиника", 'url': "/blog/-1"})
         menu.append({"name": "Чужие записи", 'url': "/look"})
     return render_template("main page.html", title="Главная страница", menu=menu)
-@app.route('/find', methods=['GET', 'POST'])
-def start_find():
+@app.route('/find/<res>', methods=['GET', 'POST'])
+def start_find(res):
+    print(res)
+    if int(res) == 0:
+        text = "Перефразируйте свой вопрос"
+    else:
+        text = ""
     form = FindForm()
     if form.validate_on_submit():
         n = str(form.name._value()) + ";" + str(form.z._value()) + ";" + str(form.l.data)
         return redirect(f'/image/{n}')
-    return render_template('find image.html', title='Поиск места', form=form, menu=menu)
-@app.route('/S', methods=['GET', 'POST'])
-def count():
+    return render_template('find image.html', title='Поиск места', form=form, menu=menu, text=text)
+@app.route('/S/<res>', methods=['GET', 'POST'])
+def count(res):
+    if int(res) == 0:
+        message = "Перефразируйте свой вопрос"
+    else:
+        message = ""
     form = CountForm()
     if form.validate_on_submit():
         n = str(form.name1._value() + ";" + form.name2._value())
-        return redirect(f'/count/{coordinates(n)}')
-    return render_template('count.html', title='Поиск места', form=form, menu=menu)
-@app.route('/find2', methods=['GET', 'POST'])
-def start_find2():
-    form = FindForm2()
-    if form.validate_on_submit():
-        n = str(form.name._value())
-        return redirect(f'/image/{n}')
-    return render_template('find image.html', title='Авторизация', form=form, menu=menu)
+        print(n)
+        info = coordinates(n)
+        if info != False:
+            return redirect(f'/count/{info}')
+        else:
+            return redirect("/S/0")
+    return render_template('count.html', title='Вычисление расстояния', form=form, menu=menu, message=message)
 @app.route('/image/<x>')
 def start_image(x,check=0):
     global n1
     n1 = x
-    return render_template("image.html", title="Результаты", menu=menu, res=start(x, check), image=f"/static/{current_user.name}.png")
+    res = start(x, check)
+    if res != False:
+        return render_template("image.html", title="Результаты", menu=menu, res=res,
+                               image=f"/static/{current_user.name}.png")
+    else:
+        return redirect("/find/0")
 @app.route('/count/<x>')
 def start7(x):
-    return render_template("count_res.html", text=x)
+    return render_template("count_res.html", text=x, title="Результаты", menu=menu)
 @app.route("/register", methods=['GET', 'POST'])
 def registration():
     form = RegisterForm()
@@ -128,12 +140,12 @@ def blog(information):
             n.color = "pmrdm"
             text = n.description
             name = n.name
-            location = n.location
+            location = "Место:" + str(n.location)
             if n.photo == "0":
                 img = "Фотографий нет"
             else:
-                open_img(name, n.photo)
-                img = name
+                open_img(n.photo)
+                img = current_user.id
             if len(information) == 1:
                 info = [{"name": "Назад", "id": "", "url": "/blog/-1"},
                         {"name": "Удалить эту запись", "id": "", "url": f"/delete/{tag}"}]
@@ -158,8 +170,8 @@ def blog(information):
                 info.append(d)
         load_map()
         menu2 = menu + [{"name": "Новая метка", 'url': "/add"}, {"name": "Создать новый альбом", 'url': "/direct"}]
-        return render_template('my_blog.html', title='Блог', menu=menu2, tag_list=info,
-                               tag=tag[3:], text=text, name=name,
+        return render_template('my_blog.html', title='Записи', menu=menu2, tag_list=info,
+                               tag=tag, text=text, name=name,
                                location=location, image=f"/static/{current_user.name}.png", img=f"/static/{img}.png")
     else:
         return "Пока"
@@ -268,13 +280,15 @@ def load_img(name):
         file.close()
     os.remove(f"create/{name}")
     return photo
-def open_img(name, wb):
-    with open(f"static/{name}.png", "wb") as file:
+def open_img(wb):
+    if os.path.exists(f"static/{current_user.id}"):
+        os.remove(f"static/{current_user.id}")
+    with open(f"static/{current_user.id}.png", "wb") as file:
         file.write(wb)
         file.close()
-    im = Image.open(f"static/{name}.png")
-    out = im.resize((200, 200))
-    out.save(f"static/{name}.png")
+    im = Image.open(f"static/{current_user.id}.png")
+    out = im.resize((300, 300))
+    out.save(f"static/{current_user.id}.png")
 if __name__ == '__main__':
     db_session.global_init("db/Users.db")
     app.run(port=8080, host='127.0.0.1')

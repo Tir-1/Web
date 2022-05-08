@@ -8,9 +8,6 @@ class FindForm(FlaskForm):
     z = IntegerField("Масштаб: ", validators=[DataRequired()], default=10)
     l = RadioField("Выбор формата", choices=["Карта", "Спутник", "Гибрид"], validators=[DataRequired()])
     submit = SubmitField("Подтвердить")
-class FindForm2(FlaskForm):
-    name = StringField("Название страны: ", validators=[DataRequired()])
-    submit = SubmitField("Подтвердить")
 class CountForm(FlaskForm):
     name1 = StringField("Название: ", validators=[DataRequired()])
     name2 = StringField("Название: ", validators=[DataRequired()])

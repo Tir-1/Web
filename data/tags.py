@@ -9,7 +9,7 @@ class Tags_of_map(SqlAlchemyBase):
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
     color = sqlalchemy.Column(sqlalchemy.String, default="pmwtm", nullable=True)
-    name = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    name = sqlalchemy.Column(sqlalchemy.String)
     location = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     coord = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     description = sqlalchemy.Column(sqlalchemy.String, nullable=True)

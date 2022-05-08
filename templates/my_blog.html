@@ -2,22 +2,23 @@
 
 {% block body %}
     {% if current_user.is_authenticated %}
-    <img src={{image}}>
+    <img src={{image}} align="left">
     {% else %}
-    <p>NOПРивет</p>
+    <p>Тебе тут делать нечего</p>
     {% endif %}
+    <p align="left">Выберите или создайте метку</p>
     {% if img != "Фотографий нет" or img != ""%}
-    <img src={{img}}>
+    <br>
+    <img src={{img}} align="right">
     {% endif %}
     {%for i in tag_list%}
     <a href={{i["url"]}}>{{i["name"]}}</a>
+    <br>
     {%endfor%}
 <br>
-{%if tag == "-1"%}
-<p>Выберите метку</p>
-{% else %}
+{%if tag != "-1"%}
     <p>{{name}}</p>
-    <p>Место:{{location}}</p>
+    <p>{{location}}</p>
     {{text}}
 {% endif %}
 {% endblock %}
