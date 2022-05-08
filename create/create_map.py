@@ -1,5 +1,6 @@
 import requests
 from flask_login import current_user
+# Находит изображение указаного места
 
 
 def start(x, check):
@@ -32,7 +33,7 @@ def start(x, check):
 
 
 def get_image(lon, lat, z, l):
-    WIDTH, HEIGHT = 450, 500
+    WIDTH, HEIGHT = 450, 450
     params = {
         'l': l,
         'll': ','.join([str(lon), str(lat)]),
@@ -40,5 +41,6 @@ def get_image(lon, lat, z, l):
         'size': ','.join([str(WIDTH), str(HEIGHT)])
     }
     request = requests.get('https://static-maps.yandex.ru/1.x/', params)
+    print(request.content)
     with open(f'static/{current_user.name}.png', 'wb') as file:
         file.write(request.content)

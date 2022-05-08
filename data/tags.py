@@ -4,7 +4,7 @@ from sqlalchemy import orm
 from .db_session import SqlAlchemyBase
 
 
-class Tags_of_map(SqlAlchemyBase):
+class Tags_of_map(SqlAlchemyBase):  # Класс записи. Хранит данные об записи и в том числе id хозяина запис
     __tablename__ = 'tags'
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)

@@ -5,7 +5,7 @@ a = ""
 b = ""
 
 
-def lonlat_distance(a, b, tp):
+def lonlat_distance(a, b, tp):  # высчитывает дистанцию
     degree_to_meters_factor = 111 * 1000
     a_lon, a_lat = a
     b_lon, b_lat = b
@@ -18,7 +18,7 @@ def lonlat_distance(a, b, tp):
     return f"Расстоние между {tp[0]} и {tp[1]} равно {distance}"
 
 
-def coordinates(locals):
+def coordinates(locals):  # находит координаты двух объектов
     l = []
     locals = locals.split(";")
     tp = []

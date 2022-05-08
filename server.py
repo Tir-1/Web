@@ -9,8 +9,8 @@ from data import db_session
 from findform import RegisterForm
 from data.users import User
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from create.test import load_map
-from create.main import get_coord
+from create.creating_map import load_map
+from create.coordinates import get_coord
 from data.tags import Tags_of_map
 from data.directories import Directory
 app = Flask(__name__)
@@ -20,18 +20,22 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 n1 = 0
 default1 = ""
-@app.route('/')
+
+
+@app.route('/')  # Главная страница
 @app.route('/index')
 def index():
+    print(menu)
     if current_user.is_authenticated and len(menu) == 1:
         menu.append({"name": "Поиск места", 'url': "/find/1"})
         menu.append({"name": "Вычисление расстояния", 'url': "/S/1"})
         menu.append({"name": "Дневник путешествиника", 'url': "/blog/-1"})
         menu.append({"name": "Чужие записи", 'url': "/look"})
     return render_template("main page.html", title="Главная страница", menu=menu)
-@app.route('/find/<res>', methods=['GET', 'POST'])
+
+
+@app.route('/find/<res>', methods=['GET', 'POST'])  # страница с поиском места по адресу
 def start_find(res):
-    print(res)
     if int(res) == 0:
         text = "Перефразируйте свой вопрос"
     else:
@@ -41,7 +45,9 @@ def start_find(res):
         n = str(form.name._value()) + ";" + str(form.z._value()) + ";" + str(form.l.data)
         return redirect(f'/image/{n}')
     return render_template('find image.html', title='Поиск места', form=form, menu=menu, text=text)
-@app.route('/S/<res>', methods=['GET', 'POST'])
+
+
+@app.route('/S/<res>', methods=['GET', 'POST'])  # Страница с вычислением расстояния между двумя гео. обьектами
 def count(res):
     if int(res) == 0:
         message = "Перефразируйте свой вопрос"
@@ -50,15 +56,16 @@ def count(res):
     form = CountForm()
     if form.validate_on_submit():
         n = str(form.name1._value() + ";" + form.name2._value())
-        print(n)
         info = coordinates(n)
         if info != False:
             return redirect(f'/count/{info}')
         else:
             return redirect("/S/0")
     return render_template('count.html', title='Вычисление расстояния', form=form, menu=menu, message=message)
-@app.route('/image/<x>')
-def start_image(x,check=0):
+
+
+@app.route('/image/<x>')  # страница загружающая данное изображение
+def start_image(x, check=0):
     global n1
     n1 = x
     res = start(x, check)
@@ -67,10 +74,14 @@ def start_image(x,check=0):
                                image=f"/static/{current_user.name}.png")
     else:
         return redirect("/find/0")
-@app.route('/count/<x>')
+
+
+@app.route('/count/<x>')  # страница с результатами для вычисления расстояния
 def start7(x):
     return render_template("count_res.html", text=x, title="Результаты", menu=menu)
-@app.route("/register", methods=['GET', 'POST'])
+
+
+@app.route("/register", methods=['GET', 'POST'])  # регистрация пользователя
 def registration():
     form = RegisterForm()
     if form.validate_on_submit():
@@ -92,11 +103,15 @@ def registration():
         db_sess.commit()
         return redirect('/login')
     return render_template('registr.html', title='Регистрация', form=form, menu=menu)
-@login_manager.user_loader
+
+
+@login_manager.user_loader  # загрузка пользователя
 def load_user(user_id):
     db_sess = db_session.create_session()
     return db_sess.query(User).get(user_id)
-@app.route('/login', methods=['GET', 'POST'])
+
+
+@app.route('/login', methods=['GET', 'POST'])  # вход в аккаунт
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -109,12 +124,18 @@ def login():
                                message="Неправильный логин или пароль",
                                form=form, menu=menu)
     return render_template('log.html', title='Авторизация', form=form, menu=menu)
-@app.route('/logout')
+
+
+@app.route('/logout')  # выход из аккаунта
 @login_required
 def logout():
+    global menu
+    menu = [{"name": "Главная страница", 'url': "/"}]
     logout_user()
     return redirect("/")
-@app.route("/blog/<information>")
+
+
+@app.route("/blog/<information>")  # страница с записями пользователя
 def blog(information):
     information = information.split(";")
     tag = information[0]
@@ -123,9 +144,11 @@ def blog(information):
         info = []
         text, name, location = "", "", ""
         db_sess = db_session.create_session()
+        # Все метки окрашиваются в белый
         for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id):
             i.color = "pmwtm"
             db_sess.commit()
+        # работа с альбомами
         if tag[:4] == "dir_":
             direct = db_sess.query(Directory).filter(Directory.id == tag[4:]).first()
             check = direct.tags
@@ -135,6 +158,7 @@ def blog(information):
                                                        Tags_of_map.id.in_(check)):
                 d = {"name": i.name, "id": i.id, "url": "/blog/" + str(i.id)}
                 info.append(d)
+        # работа с меткой и загрузка её данных
         elif tag != "-1":
             n = db_sess.query(Tags_of_map).filter(Tags_of_map.id == tag).first()
             n.color = "pmrdm"
@@ -146,6 +170,7 @@ def blog(information):
             else:
                 open_img(n.photo)
                 img = current_user.id
+            # Проверка кому принадлежит запись
             if len(information) == 1:
                 info = [{"name": "Назад", "id": "", "url": "/blog/-1"},
                         {"name": "Удалить эту запись", "id": "", "url": f"/delete/{tag}"}]
@@ -161,6 +186,7 @@ def blog(information):
                 info = [{"name": "Назад", "id": "", "url": "/look"}]
             db_sess.commit()
         else:
+            # отображение меток и альбомов пользователя
             for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id,
                                                        Tags_of_map.in_directory == 0):
                 d = {"name": i.name, "id": i.id, "url": "/blog/" + str(i.id)}
@@ -175,7 +201,9 @@ def blog(information):
                                location=location, image=f"/static/{current_user.name}.png", img=f"/static/{img}.png")
     else:
         return "Пока"
-@app.route("/add", methods=['GET', 'POST'])
+
+
+@app.route("/add", methods=['GET', 'POST'])  # добавление метки
 def add():
     form = AddTag()
     if form.validate_on_submit():
@@ -202,13 +230,17 @@ def add():
         db_sess.commit()
         return redirect("blog/-1")
     return render_template("addtag.html", title="Добавление метки", form=form)
-@app.route("/delete/<tag>", methods=['GET', 'POST'])
+
+
+@app.route("/delete/<tag>", methods=['GET', 'POST'])  # удаление метки
 def delete(tag):
     db_sess = db_session.create_session()
     db_sess.query(Tags_of_map).filter(Tags_of_map.id == tag).delete()
     db_sess.commit()
     return redirect("/blog/-1")
-@app.route("/direct", methods=['GET', 'POST'])
+
+
+@app.route("/direct", methods=['GET', 'POST'])  # создание директории
 def create():
     form = AddDirect()
     if form.validate_on_submit():
@@ -222,7 +254,9 @@ def create():
         db_sess.commit()
         return redirect("blog/-1")
     return render_template("addtag.html", title="Добавление директории", form=form)
-@app.route("/add_to_dir/<num>")
+
+
+@app.route("/add_to_dir/<num>")  # добавление/перемещение записи в альбом
 def cr2(num):
     db_sess = db_session.create_session()
     text = [{"name": "Назад", "id": "/blog/-1"}]
@@ -236,12 +270,14 @@ def cr2(num):
         for i in db_sess.query(Directory).filter(Directory.user_id == current_user.id, Directory.id != tg.in_directory):
             text.append({"name": i.name, "id": f"/save/{str(num) + ';' + str(i.id) + ';' + str(tg.in_directory)}"})
     return render_template("dir.html", title=title, text=text)
-@app.route("/save/<nums>")
+
+
+@app.route("/save/<nums>")  # сохранение изменений альбомов
 def cr3(nums):
     nums = nums.split(";")
     db_sess = db_session.create_session()
     tg = db_sess.query(Tags_of_map).filter(Tags_of_map.id == nums[0]).first()
-    dir = db_sess.query(Directory).filter(Directory.id == nums[1]).first()
+    directory = db_sess.query(Directory).filter(Directory.id == nums[1]).first()
     tg_id = tg.id
     if len(nums) == 3:
         old_dir = db_sess.query(Directory).filter(Directory.id == nums[2]).first()
@@ -252,11 +288,13 @@ def cr3(nums):
                 new_id += f"{i};"
         old_dir.tags = new_id
         db_sess.commit()
-    tg.in_directory = dir.id
-    dir.tags = dir.tags + str(tg_id) + ";"
+    tg.in_directory = directory.id
+    directory.tags = directory.tags + str(tg_id) + ";"
     db_sess.commit()
     return redirect("/blog/-1")
-@app.route("/look")
+
+
+@app.route("/look")  # просмотр чужих записей
 def look():
     if current_user.is_authenticated:
         db_sess = db_session.create_session()
@@ -266,7 +304,9 @@ def look():
             text.append({user.name: {"name": i.name, "url": f"blog/{str(i.id) + ';other'}"}})
         return render_template("look.html", text=text, menu=menu, title="Записи других пользователей")
     return "Вам нужно зарегестрироваться"
-@app.route("/change/<num>")
+
+
+@app.route("/change/<num>")  # изменение статуса записи(публичная или нет)
 def change(num):
     num = num.split(";")
     db_sess = db_session.create_session()
@@ -274,13 +314,17 @@ def change(num):
     tg.private = int(num[0])
     db_sess.commit()
     return redirect(f"/blog/{str(num[1])}")
-def load_img(name):
+
+
+def load_img(name):  # зашрузка изображения в бд
     with open(f"create/{name}", "rb") as file:
         photo = file.read()
         file.close()
     os.remove(f"create/{name}")
     return photo
-def open_img(wb):
+
+
+def open_img(wb):  # загрузка изображения из бд
     if os.path.exists(f"static/{current_user.id}"):
         os.remove(f"static/{current_user.id}")
     with open(f"static/{current_user.id}.png", "wb") as file:
@@ -289,6 +333,8 @@ def open_img(wb):
     im = Image.open(f"static/{current_user.id}.png")
     out = im.resize((300, 300))
     out.save(f"static/{current_user.id}.png")
+
+
 if __name__ == '__main__':
     db_session.global_init("db/Users.db")
     app.run(port=8080, host='127.0.0.1')

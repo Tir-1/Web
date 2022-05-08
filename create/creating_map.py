@@ -7,7 +7,7 @@ from data import db_session
 from data.tags import Tags_of_map
 
 
-def open_db():
+def open_db():  # Достаём из БД метки пользователя
     db_sess = db_session.create_session()
     lines = "&pt="
     for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id):
@@ -17,9 +17,9 @@ def open_db():
     lines += "&"
     return lines
 
-def load_map():
+
+def load_map():  # Создаём изображение карты с метками пользователя
     n = open_db()
-    print(n)
     if not n == "&pt&":
         map_request = f"http://static-maps.yandex.ru/1.x/?ll=-0.243073,-0.565456&l=map{n}z=1"
     else:

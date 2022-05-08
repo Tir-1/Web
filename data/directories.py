@@ -4,7 +4,7 @@ from sqlalchemy import orm
 from .db_session import SqlAlchemyBase
 
 
-class Directory(SqlAlchemyBase):
+class Directory(SqlAlchemyBase):  # Класс хранящий информацию об альбомах пользователя
     __tablename__ = 'directories'
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
