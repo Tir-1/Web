@@ -6,6 +6,9 @@
     {% else %}
     <p>NOПРивет</p>
     {% endif %}
+    {% if img != "Фотографий нет" or img != ""%}
+    <img src={{img}}>
+    {% endif %}
     {%for i in tag_list%}
     <a href={{i["url"]}}>{{i["name"]}}</a>
     {%endfor%}

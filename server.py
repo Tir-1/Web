@@ -1,4 +1,7 @@
+import os
 from flask import Flask, render_template, redirect
+from werkzeug.utils import secure_filename
+from PIL import Image
 from findform import FindForm, FindForm2, CountForm, LoginForm, AddTag, AddDirect
 from create.create_map import start
 from create.count_S import coordinates
@@ -98,6 +101,7 @@ def logout():
 @app.route("/blog/<tag>")
 def blog(tag):
     if current_user.is_authenticated:
+        img = ""
         info = []
         text, name, location = "", "", ""
         db_sess = db_session.create_session()
@@ -119,6 +123,16 @@ def blog(tag):
             text = n.description
             name = n.name
             location = n.location
+            if n.photo == "0":
+                img = "Фотографий нет"
+            else:
+                with open(f"static/{name}.png", "wb") as file:
+                    file.write(n.photo)
+                    file.close()
+                im = Image.open(f"static/{name}.png")
+                out = im.resize((200, 200))
+                out.save(f"static/{name}.png")
+                img = name
             db_sess.commit()
             info = [{"name": "Назад", "id": "", "url": "/blog/-1"},
                     {"name": "Удалить эту запись", "id": "", "url": f"/delete/{tag}"}]
@@ -126,6 +140,10 @@ def blog(tag):
                 info.append({"name": "Добавить эту метку в альбом", "id": "", "url": f"/add_to_dir/{tag}"})
             else:
                 info.append({"name": "Перенести запись", "id": "", "url": f"/add_to_dir/{tag}"})
+            if n.private == 0:
+                info.append({"name": "Сделать запись публичной", "id": "", "url": f"/change/{1}/{tag}"})
+            else:
+                info.append({"name": "Сделать запись приватной", "id": "", "url": f"/change{0}/{tag}"})
         else:
             for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id, Tags_of_map.in_directory == 0):
                 d = {"name": i.name, "id": i.id, "url": "/blog/" + str(i.id)}
@@ -137,7 +155,7 @@ def blog(tag):
         menu2 = menu + [{"name": "Новая метка", 'url': "/add"}, {"name": "Создать новый альбом", 'url': "/direct"}]
         return render_template('my_blog.html', title='Блог', menu=menu2, tag_list=info,
                                tag=tag[3:], text=text, name=name,
-                               location=location, image=f"/static/{current_user.name}.png")
+                               location=location, image=f"/static/{current_user.name}.png", img=f"/static/{img}.png")
     else:
         return "Пока"
 @app.route("/add", methods=['GET', 'POST'])
@@ -152,6 +170,16 @@ def add():
         tag.description = form.text._value()
         tag.user_id = current_user.id
         tag.in_directory = 0
+        if form.photo.data != None:
+            filename = secure_filename(form.photo.data.filename)
+            form.photo.data.save('create/' + filename)
+            tag.photo = load_img(filename)
+        else:
+            tag.photo = "0"
+        if form.public.data:
+            tag.private = 1
+        else:
+            tag.private = 0
         current_user.tags.append(tag)
         db_sess.merge(current_user)
         db_sess.commit()
@@ -211,6 +239,24 @@ def cr3(nums):
     dir.tags = dir.tags + str(tg_id) + ";"
     db_sess.commit()
     return redirect("/blog/-1")
+@app.route("/look")
+def look():
+    db_sess = db_session.create_session()
+    for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id != current_user.id):
+        print()
+@app.route("/change/<num>")
+def change(num):
+    num = num.split(";")
+    db_sess = db_session.create_session()
+    tg = db_sess.query(Tags_of_map).filter(Tags_of_map.id == int(num[1]))
+    tg.private = num[0]
+    db_sess.commit()
+def load_img(name):
+    with open(f"create/{name}", "rb") as file:
+        photo = file.read()
+        file.close()
+    os.remove(f"create/{name}")
+    return photo
 if __name__ == '__main__':
     db_session.global_init("db/Users.db")
     app.run(port=8080, host='127.0.0.1')

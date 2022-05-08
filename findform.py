@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField
 from wtforms import StringField, SubmitField, IntegerField, RadioField, EmailField, PasswordField, BooleanField, \
     TextAreaField
 from wtforms.validators import DataRequired
@@ -29,6 +30,8 @@ class AddTag(FlaskForm):
     name = StringField("Название метки: ", validators=[DataRequired()])
     address = StringField("Название места: ", validators=[DataRequired()])
     text = TextAreaField("Заметка: ", validators=[DataRequired()])
+    public = BooleanField('Публичная запись')
+    photo = FileField("Выберите фотографию")
     submit = SubmitField("Подтвердить")
 class AddDirect(FlaskForm):
     name = StringField("Название директории: ", validators=[DataRequired()])

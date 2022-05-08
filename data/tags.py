@@ -15,4 +15,6 @@ class Tags_of_map(SqlAlchemyBase):
     description = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), nullable=False)
     in_directory = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    private = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    photo = sqlalchemy.Column(sqlalchemy.BLOB, nullable=True)
     user = orm.relationship("User", backref='tags')
