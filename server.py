@@ -15,8 +15,7 @@ from data.tags import Tags_of_map
 from data.directories import Directory
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
-menu = [{"name": "Главная страница", 'url': "/"}, {"name": "Поиск места", 'url': "/find"},
-        {"name": "Вычисление расстояния", 'url': "/S"}, {"name": "Дневник путешествиника", 'url': "/blog/-1"}]
+menu = [{"name": "Главная страница", 'url': "/"}]
 login_manager = LoginManager()
 login_manager.init_app(app)
 n1 = 0
@@ -24,6 +23,11 @@ default1 = ""
 @app.route('/')
 @app.route('/index')
 def index():
+    if current_user.is_authenticated and len(menu) == 1:
+        menu.append({"name": "Поиск места", 'url': "/find"})
+        menu.append({"name": "Вычисление расстояния", 'url': "/S"})
+        menu.append({"name": "Дневник путешествиника", 'url': "/blog/-1"})
+        menu.append({"name": "Чужие записи", 'url': "/look"})
     return render_template("main page.html", title="Главная страница", menu=menu)
 @app.route('/find', methods=['GET', 'POST'])
 def start_find():
@@ -98,8 +102,10 @@ def login():
 def logout():
     logout_user()
     return redirect("/")
-@app.route("/blog/<tag>")
-def blog(tag):
+@app.route("/blog/<information>")
+def blog(information):
+    information = information.split(";")
+    tag = information[0]
     if current_user.is_authenticated:
         img = ""
         info = []
@@ -118,7 +124,7 @@ def blog(tag):
                 d = {"name": i.name, "id": i.id, "url": "/blog/" + str(i.id)}
                 info.append(d)
         elif tag != "-1":
-            n = db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id, Tags_of_map.id == tag).first()
+            n = db_sess.query(Tags_of_map).filter(Tags_of_map.id == tag).first()
             n.color = "pmrdm"
             text = n.description
             name = n.name
@@ -126,26 +132,25 @@ def blog(tag):
             if n.photo == "0":
                 img = "Фотографий нет"
             else:
-                with open(f"static/{name}.png", "wb") as file:
-                    file.write(n.photo)
-                    file.close()
-                im = Image.open(f"static/{name}.png")
-                out = im.resize((200, 200))
-                out.save(f"static/{name}.png")
+                open_img(name, n.photo)
                 img = name
+            if len(information) == 1:
+                info = [{"name": "Назад", "id": "", "url": "/blog/-1"},
+                        {"name": "Удалить эту запись", "id": "", "url": f"/delete/{tag}"}]
+                if n.in_directory == 0:
+                    info.append({"name": "Добавить эту метку в альбом", "id": "", "url": f"/add_to_dir/{tag}"})
+                else:
+                    info.append({"name": "Перенести запись", "id": "", "url": f"/add_to_dir/{tag}"})
+                if n.private == 0:
+                    info.append({"name": "Сделать запись публичной", "id": "", "url": f"/change/{str(1) + ';' + tag}"})
+                else:
+                    info.append({"name": "Сделать запись приватной", "id": "", "url": f"/change/{str(0) + ';' + tag}"})
+            else:
+                info = [{"name": "Назад", "id": "", "url": "/look"}]
             db_sess.commit()
-            info = [{"name": "Назад", "id": "", "url": "/blog/-1"},
-                    {"name": "Удалить эту запись", "id": "", "url": f"/delete/{tag}"}]
-            if n.in_directory == 0:
-                info.append({"name": "Добавить эту метку в альбом", "id": "", "url": f"/add_to_dir/{tag}"})
-            else:
-                info.append({"name": "Перенести запись", "id": "", "url": f"/add_to_dir/{tag}"})
-            if n.private == 0:
-                info.append({"name": "Сделать запись публичной", "id": "", "url": f"/change/{1}/{tag}"})
-            else:
-                info.append({"name": "Сделать запись приватной", "id": "", "url": f"/change{0}/{tag}"})
         else:
-            for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id, Tags_of_map.in_directory == 0):
+            for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id == current_user.id,
+                                                       Tags_of_map.in_directory == 0):
                 d = {"name": i.name, "id": i.id, "url": "/blog/" + str(i.id)}
                 info.append(d)
             for i in db_sess.query(Directory).filter(Directory.user_id == current_user.id):
@@ -241,22 +246,35 @@ def cr3(nums):
     return redirect("/blog/-1")
 @app.route("/look")
 def look():
-    db_sess = db_session.create_session()
-    for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id != current_user.id):
-        print()
+    if current_user.is_authenticated:
+        db_sess = db_session.create_session()
+        text = []
+        for i in db_sess.query(Tags_of_map).filter(Tags_of_map.user_id != current_user.id, Tags_of_map.private == 1):
+            user = db_sess.query(User).filter(User.id == i.user_id).first()
+            text.append({user.name: {"name": i.name, "url": f"blog/{str(i.id) + ';other'}"}})
+        return render_template("look.html", text=text, menu=menu, title="Записи других пользователей")
+    return "Вам нужно зарегестрироваться"
 @app.route("/change/<num>")
 def change(num):
     num = num.split(";")
     db_sess = db_session.create_session()
-    tg = db_sess.query(Tags_of_map).filter(Tags_of_map.id == int(num[1]))
-    tg.private = num[0]
+    tg = db_sess.query(Tags_of_map).filter(Tags_of_map.id == int(num[1])).first()
+    tg.private = int(num[0])
     db_sess.commit()
+    return redirect(f"/blog/{str(num[1])}")
 def load_img(name):
     with open(f"create/{name}", "rb") as file:
         photo = file.read()
         file.close()
     os.remove(f"create/{name}")
     return photo
+def open_img(name, wb):
+    with open(f"static/{name}.png", "wb") as file:
+        file.write(wb)
+        file.close()
+    im = Image.open(f"static/{name}.png")
+    out = im.resize((200, 200))
+    out.save(f"static/{name}.png")
 if __name__ == '__main__':
     db_session.global_init("db/Users.db")
     app.run(port=8080, host='127.0.0.1')

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block body %}
+    {% if current_user.is_authenticated %}
+    {%for i in text%}
+    {%for j in i%}
+        <p>{{j}}</p>
+        <a href={{i[j]["url"]}}>{{i[j]["name"]}}</a>
+    {%endfor%}
+    {%endfor%}
+    {% else %}
+    <p>NOПРивет</p>
+    {% endif %}
+{% endblock %}
