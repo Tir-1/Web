@@ -25,11 +25,10 @@ default1 = ""
 @app.route('/')  # Главная страница
 @app.route('/index')
 def index():
-    print(menu)
     if current_user.is_authenticated and len(menu) == 1:
         menu.append({"name": "Поиск места", 'url': "/find/1"})
         menu.append({"name": "Вычисление расстояния", 'url': "/S/1"})
-        menu.append({"name": "Дневник путешествиника", 'url': "/blog/-1"})
+        menu.append({"name": "Дневник путешественника", 'url': "/blog/-1"})
         menu.append({"name": "Чужие записи", 'url': "/look"})
     return render_template("main page.html", title="Главная страница", menu=menu)
 
@@ -207,28 +206,33 @@ def blog(information):
 def add():
     form = AddTag()
     if form.validate_on_submit():
-        db_sess = db_session.create_session()
-        tag = Tags_of_map()
-        tag.location = form.address._value()
-        tag.coord = get_coord(form.address._value())
-        tag.name = form.name._value()
-        tag.description = form.text._value()
-        tag.user_id = current_user.id
-        tag.in_directory = 0
-        if form.photo.data != None:
-            filename = secure_filename(form.photo.data.filename)
-            form.photo.data.save('create/' + filename)
-            tag.photo = load_img(filename)
+        cd = get_coord(form.address._value())
+        print(cd)
+        if cd != False:
+            db_sess = db_session.create_session()
+            tag = Tags_of_map()
+            tag.location = form.address._value()
+            tag.coord = cd
+            tag.name = form.name._value()
+            tag.description = form.text._value()
+            tag.user_id = current_user.id
+            tag.in_directory = 0
+            if form.photo.data != None:
+                filename = secure_filename(form.photo.data.filename)
+                form.photo.data.save('create/' + filename)
+                tag.photo = load_img(filename)
+            else:
+                tag.photo = "0"
+            if form.public.data:
+                tag.private = 1
+            else:
+                tag.private = 0
+            current_user.tags.append(tag)
+            db_sess.merge(current_user)
+            db_sess.commit()
+            return redirect("blog/-1")
         else:
-            tag.photo = "0"
-        if form.public.data:
-            tag.private = 1
-        else:
-            tag.private = 0
-        current_user.tags.append(tag)
-        db_sess.merge(current_user)
-        db_sess.commit()
-        return redirect("blog/-1")
+            return render_template("addtag.html", title="Создать метку не удалось", form=form)
     return render_template("addtag.html", title="Добавление метки", form=form)
 
 

@@ -38,7 +38,7 @@ class AddTag(FlaskForm):  # Добваление метки
     address = StringField("Название места: ", validators=[DataRequired()])
     text = TextAreaField("Заметка: ", validators=[DataRequired()])
     public = BooleanField('Публичная запись')
-    photo = FileField("Выберите фотографию")
+    photo = FileField("Выберите фотографию", validators=[DataRequired()])
     submit = SubmitField("Подтвердить")
 
 
